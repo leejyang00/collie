@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import Application, CommandHandler, CallbackContext, ConversationHandler, CallbackQueryHandler, MessageHandler, filters
 
@@ -18,6 +19,8 @@ CATEGORY, ADD_PAYMENT = range(2)
 
 # Define category options
 CATEGORIES = ['Utilities', 'Subscriptions', 'Fitness', 'Other']
+
+load_dotenv()  # take environment variables from .env.
 
 # Define a start command
 async def start(update: Update, context: CallbackContext) -> None:
@@ -92,27 +95,24 @@ def webhook(request):
 
   return 'ok'
 
-# # Main function to set up the bot
-# def main() -> None:
-#     # Create an application and pass in the bot's token
-#     application = Application.builder().token(TOKEN).build()
+async def main() -> None:
+    application = await setup_application()
+    # Instead of run_polling, use start
+    # Start the bot
 
-#     conv_handler = ConversationHandler(
-#       entry_points=[CommandHandler("start", start)],
-#       states={
-#           CATEGORY: [CallbackQueryHandler(category, pattern='^' + '|'.join(CATEGORIES) + '$')]
-#           # ADD_PAYMENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_payment)],
-#       },
-#       fallbacks=[CommandHandler('cancel', cancel)],
-#     )
-
-#     application.add_handler(conv_handler)
-
-#     # application.add_handler(CommandHandler("start", start))
-#     # application.add_handler(CommandHandler("help", help_command))
-
-#     # # Run the bot until you press Ctrl-C
-#     application.run_polling()
+    print("Starting bot...")
+    await application.initialize()
+    await application.start()
+    
+    try:
+        await application.run_polling(allowed_updates=Update.ALL_TYPES)
+    finally:
+        await application.stop()
 
 if __name__ == '__main__':
-    main()
+  try:
+      asyncio.run(main())
+  except RuntimeError:
+      # If there's already an event loop running, use this instead:
+      loop = asyncio.get_event_loop()
+      loop.run_until_complete(main())
